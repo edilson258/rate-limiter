@@ -10,6 +10,6 @@ export class UpperCaseRouter {
   }
 
   private routes() {
-    this.router.get("/upper/", upperCaseController.handle);
+    this.router.get("", upperCaseController.handle);
   }
 }

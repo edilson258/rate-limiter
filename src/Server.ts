@@ -18,7 +18,7 @@ export class Server {
   }
 
   private routes() {
-    this.app.use("", new UpperCaseRouter().router)
+    this.app.use("/upper/", new UpperCaseRouter().router)
   }
 
   public startServer = () => {
