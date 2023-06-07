@@ -1,6 +1,7 @@
 import morgan from "morgan";
 import e, { Express } from "express";
 import { UpperCaseRouter } from "./routes/UpperCaseRouter"
+import {UserRouter} from "./routes/UserRouter";
 
 export class Server {
   private app: Express;
@@ -19,6 +20,7 @@ export class Server {
 
   private routes() {
     this.app.use("/upper/", new UpperCaseRouter().router)
+    this.app.use("/users/", new UserRouter().router)
   }
 
   public startServer = () => {
