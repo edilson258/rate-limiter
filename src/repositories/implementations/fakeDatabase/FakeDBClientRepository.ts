@@ -6,7 +6,7 @@ interface ClientModel {
   APIKey: string;
 }
 
-export class FakeDatabase implements IClientRepository {
+export class FakeDBClientRepository implements IClientRepository {
   private clients: ClientModel[];
   constructor() {
     this.clients = [];
