@@ -1,5 +1,5 @@
-import { Client } from "../../../entities/Client";
-import { IClientRepository } from "../../IClientRepository";
+import { Client } from "../../../../entities/Client";
+import { IClientRepository } from "../../../IClientRepository";
 
 interface ClientModel {
   email: string;

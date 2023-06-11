@@ -1,9 +1,8 @@
-import { FakeDBClientRepository } from "../../repositories/implementations/fakeDatabase/FakeDBClientRepository";
+import { fakeDBClientRepository } from "../../repositories/implementations/fakeDatabase/clientRepository";
 import { CreateAPIKeyUseCase } from "./CreateAPIKeyUseCase";
 import { CreateAPIKeyController } from "./CreateAPIKeyController";
 
-const clientRepository = new FakeDBClientRepository()
-const createAPIKeyUseCase = new CreateAPIKeyUseCase(clientRepository)
+const createAPIKeyUseCase = new CreateAPIKeyUseCase(fakeDBClientRepository)
 const createAPIKeyController = new CreateAPIKeyController(createAPIKeyUseCase)
 
 export { createAPIKeyController }

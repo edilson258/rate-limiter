@@ -1,6 +1,7 @@
 import { IRatelimiterDTO } from "./RatelimiterDTO";
-import { IRatelimiterSessionRepository } from "../../repositories/IRatelimiterRepository";
+import { IRatelimiterSessionRepository } from "../../repositories/IRatelimiterSessionRepository";
 import moment from "moment";
+import { IClientRepository } from "../../repositories/IClientRepository";
 
 export type TRatelimiterSession = {
   APIKey: string;
@@ -22,10 +23,15 @@ const standardRate: IRate = {
 
 export class RatelimiterUseCase {
   private session: TRatelimiterSession | null;
+  private clientRepository: IClientRepository;
   private sessionRepository: IRatelimiterSessionRepository;
 
-  constructor(sessionRepository: IRatelimiterSessionRepository) {
+  constructor(
+    clientRepository: IClientRepository,
+    sessionRepository: IRatelimiterSessionRepository
+  ) {
     this.session = null;
+    this.clientRepository = clientRepository;
     this.sessionRepository = sessionRepository;
   }
 
@@ -33,16 +39,26 @@ export class RatelimiterUseCase {
     data: IRatelimiterDTO
   ): Promise<{
     isAllowed: boolean;
+    status: number;
     reason: string;
   }> => {
     const APIKey = data.APIKey;
 
+    if ((await this.isValidAPIKey(APIKey)) === false) {
+      return {
+        isAllowed: false,
+        status: 403,
+        reason: "Invalid API key",
+      };
+    }
+
     const session = await this.sessionRepository.getSessionByAPIKey(APIKey);
 
-    if (!session) {
+    if (session === null) {
       await this.createSession(APIKey);
       return {
         isAllowed: true,
+        status: 200,
         reason: "is the first request",
       };
     }
@@ -62,6 +78,7 @@ export class RatelimiterUseCase {
       await this.updateWindowStartTime(this.session);
       return {
         isAllowed: true,
+        status: 200,
         reason: "window expired",
       };
     }
@@ -73,6 +90,7 @@ export class RatelimiterUseCase {
       await this.updateNumberOfDoneRequests(this.session);
       return {
         isAllowed: true,
+        status: 200,
         reason: "didn't exceeded the limit of requests",
       };
     }
@@ -84,8 +102,15 @@ export class RatelimiterUseCase {
 
     return {
       isAllowed: false,
-      reason: "try again after % seconds".replace("%", tryAgainWithin),
+      status: 429,
+      reason: `try again after ${tryAgainWithin} seconds`,
     };
+  };
+
+  private isValidAPIKey = async (APIKey: string): Promise<boolean> => {
+    const client = await this.clientRepository.getClientByAPIKey(APIKey);
+    if (client) return true;
+    return false;
   };
 
   private createSession = async (APIKey: string): Promise<void> => {
@@ -107,7 +132,6 @@ export class RatelimiterUseCase {
       windowDurationInSeconds: session.windowDurationInSeconds,
       windowStartTimeInSeconds: this.getActualTimeInSeconds(),
     };
-
     await this.sessionRepository.updateSession(updatedSession);
   }
 
@@ -119,7 +143,6 @@ export class RatelimiterUseCase {
       windowDurationInSeconds: session.windowDurationInSeconds,
       windowStartTimeInSeconds: session.windowStartTimeInSeconds,
     };
-
     await this.sessionRepository.updateSession(updatedSession);
   }
 

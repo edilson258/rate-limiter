@@ -24,10 +24,9 @@ export class RatelimiterController {
     const keyCanMakeRequest = await this.ratelimiterUseCase.perform(data);
 
     if (keyCanMakeRequest.isAllowed) {
-      console.log("Reason: ", keyCanMakeRequest.reason);
       return next();
     } else {
-      return response.status(403).end(keyCanMakeRequest.reason);
+      return response.status(keyCanMakeRequest.status).end(keyCanMakeRequest.reason);
     }
   };
 }

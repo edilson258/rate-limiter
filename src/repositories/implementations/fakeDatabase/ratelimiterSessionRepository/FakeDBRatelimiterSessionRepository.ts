@@ -1,7 +1,7 @@
-import { TRatelimiterSession } from "../../../useCases/Ratelimiter/RatelimiterUseCase";
-import { IRatelimiterSessionRepository } from "../../IRatelimiterRepository";
+import { TRatelimiterSession } from "../../../../useCases/Ratelimiter/RatelimiterUseCase";
+import { IRatelimiterSessionRepository } from "../../../IRatelimiterSessionRepository";
 
-export class FakeDBRatelimiterRepository
+export class FakeDBRatelimiterSessionRepository
   implements IRatelimiterSessionRepository
 {
   private sessions: TRatelimiterSession[];
