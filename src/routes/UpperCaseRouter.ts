@@ -1,16 +1,17 @@
 import { Router } from "express";
 import { upperCaseController } from "../useCases/UpperCase";
-import { rateLimiter } from "../useCases/Ratelimiter";
+import { rateLimiter } from "../middlewares/Ratelimiter";
 
 export class UpperCaseRouter {
   public router: Router;
 
   constructor() {
     this.router = Router();
+    this.router.use(rateLimiter.handle)
     this.routes();
   }
 
   private routes() {
-    this.router.get("", rateLimiter.handle, upperCaseController.handle);
+    this.router.get("", upperCaseController.handle);
   }
 }
