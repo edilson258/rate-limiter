@@ -5,4 +5,4 @@ import { CreateAPIKeyController } from "./CreateAPIKeyController";
 const createAPIKeyUseCase = new CreateAPIKeyUseCase(fakeDBClientRepository)
 const createAPIKeyController = new CreateAPIKeyController(createAPIKeyUseCase)
 
-export { createAPIKeyController }
+export { createAPIKeyController as createAPIKey }
