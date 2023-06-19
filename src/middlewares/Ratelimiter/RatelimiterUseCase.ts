@@ -22,7 +22,6 @@ const standardRate: IRate = {
 }; // 5 requests/min
 
 export class RatelimiterUseCase {
-  private session: TRatelimiterSession | null;
   private clientRepository: IClientRepository;
   private sessionRepository: IRatelimiterSessionRepository;
 
@@ -30,7 +29,6 @@ export class RatelimiterUseCase {
     clientRepository: IClientRepository,
     sessionRepository: IRatelimiterSessionRepository
   ) {
-    this.session = null;
     this.clientRepository = clientRepository;
     this.sessionRepository = sessionRepository;
   }
@@ -63,10 +61,8 @@ export class RatelimiterUseCase {
       };
     }
 
-    this.session = session;
-
-    const windowDurationInSeconds = this.session.windowDurationInSeconds;
-    const windowStartTimeInSeconds = this.session.windowStartTimeInSeconds;
+    const windowDurationInSeconds = session.windowDurationInSeconds;
+    const windowStartTimeInSeconds = session.windowStartTimeInSeconds;
     const actualTimeInseconds = this.getActualTimeInSeconds();
 
     const timePastSinceWindowStartInSeconds = this.calcTimeDifference(
@@ -75,7 +71,7 @@ export class RatelimiterUseCase {
     );
 
     if (timePastSinceWindowStartInSeconds > windowDurationInSeconds) {
-      await this.updateWindowStartTime(this.session);
+      await this.updateWindowStartTime(session);
       return {
         isAllowed: true,
         status: 200,
@@ -83,11 +79,11 @@ export class RatelimiterUseCase {
       };
     }
 
-    const numberOfDoneRequests = this.session.numberOfDoneRequests;
-    const requestsPerWindow = this.session.requestsPerWindow;
+    const numberOfDoneRequests = session.numberOfDoneRequests;
+    const requestsPerWindow = session.requestsPerWindow;
 
     if (requestsPerWindow > numberOfDoneRequests) {
-      await this.updateNumberOfDoneRequests(this.session);
+      await this.updateNumberOfDoneRequests(session);
       return {
         isAllowed: true,
         status: 200,
