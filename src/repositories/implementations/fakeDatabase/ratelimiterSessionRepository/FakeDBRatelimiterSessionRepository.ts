@@ -1,4 +1,4 @@
-import { TRatelimiterSession } from "../../../../useCases/Ratelimiter/RatelimiterUseCase";
+import { TRatelimiterSession } from "../../../../types/TRatelimiterSession";
 import { IRatelimiterSessionRepository } from "../../../IRatelimiterSessionRepository";
 
 export class FakeDBRatelimiterSessionRepository
