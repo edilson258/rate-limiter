@@ -13,9 +13,10 @@ export class CreateAPIKeyController {
     request: Request,
     response: Response
   ): Promise<Response> => {
-    const { email } = request.query;
+    let { email } = request.query;
 
-    if (!email) return response.status(400).end("Provide valid email");
+    if (!email || !this.isValidEmail(email.toString()))
+      return response.status(400).end("Provide valid email");
 
     const data: ICreateAPIKeyDTO = {
       email: email.toString(),
@@ -30,4 +31,9 @@ export class CreateAPIKeyController {
     }
     return response.status(200).json({ key: newAPIKey });
   };
+
+  private isValidEmail(email: string) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email);
+  }
 }
