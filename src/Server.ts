@@ -1,7 +1,7 @@
 import morgan from "morgan";
 import e, { Express } from "express";
+import { UserRouter } from "./routes/UserRouter";
 import { UpperCaseRouter } from "./routes/UpperCaseRouter"
-import {UserRouter} from "./routes/UserRouter";
 
 export class Server {
   private app: Express;
@@ -19,13 +19,13 @@ export class Server {
   }
 
   private routes() {
-    this.app.use("/upper/", new UpperCaseRouter().router)
-    this.app.use("/users/", new UserRouter().router)
+    this.app.use("/users", new UserRouter().router)
+    this.app.use("/upper", new UpperCaseRouter().router)
   }
 
-  public startServer = () => {
+  public run = () => {
     this.app.listen(this.port, () => {
-      console.log("Server running...");
+      console.log("Server running, port:", this.port);
     });
   };
 }

@@ -1,3 +1,3 @@
-export interface IRatelimiterDTO {
-  APIKey: string
+export interface RatelimiterDTO {
+  email: string
 }

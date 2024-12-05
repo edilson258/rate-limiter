@@ -1,5 +1,5 @@
-export type TRatelimiterSession = {
-  APIKey: string;
+export type RatelimiterSession = {
+  userEmail: string;
   requestsPerWindow: number;
   numberOfDoneRequests: number;
   windowDurationInSeconds: number;

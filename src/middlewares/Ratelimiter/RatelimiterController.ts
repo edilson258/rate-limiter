@@ -1,32 +1,45 @@
+import { RatelimiterDTO } from "./RatelimiterDTO";
 import { Request, Response, NextFunction } from "express";
-import { IRatelimiterDTO } from "./RatelimiterDTO";
-import { RatelimiterUseCase } from "./RatelimiterUseCase";
+import { RatelimiterErrorKind, RatelimiterUseCase } from "./RatelimiterUseCase";
+import * as jwt from "jsonwebtoken";
+import { TokenPayload } from "../../useCases/CreateUser/SignToken";
 
 export class RatelimiterController {
   private ratelimiterUseCase: RatelimiterUseCase;
+
   constructor(ratelimiterUseCase: RatelimiterUseCase) {
     this.ratelimiterUseCase = ratelimiterUseCase;
   }
 
-  public handle = async (
-    request: Request,
-    response: Response,
-    next: NextFunction
-  ): Promise<Response | void> => {
-    const { key } = request.query;
+  public handle = async (request: Request, response: Response, next: NextFunction): Promise<Response | void> => {
+    if (!request.headers.authorization) {
+      return response.status(401).end("Authorization token was not provided");
+    }
 
-    if (!key) return response.status(400).end("Provide key in request query");
+    const authTokens = request.headers.authorization.split(" ");
 
-    const data: IRatelimiterDTO = {
-      APIKey: key.toString(),
+    if (2 != authTokens.length) {
+      return response.status(401).end("Invalid authorization token");
+    }
+
+    const decoded = jwt.decode(authTokens[1]);
+    if (!decoded) {
+      return response.status(401).end("Invalid authorization token");
+    }
+
+    const payload = decoded as unknown as TokenPayload;
+    const data: RatelimiterDTO = {
+      email: payload.email,
     };
 
-    const keyCanMakeRequest = await this.ratelimiterUseCase.perform(data);
-
-    if (keyCanMakeRequest.isAllowed) {
-      return next();
-    } else {
-      return response.status(keyCanMakeRequest.status).end(keyCanMakeRequest.reason);
+    let error = await this.ratelimiterUseCase.handle(data);
+    if (error) {
+      switch (error.kind) {
+        case RatelimiterErrorKind.LIMIT_EXCEED:
+          return response.status(429).end(error.message);
+      }
     }
+
+    next();
   };
 }

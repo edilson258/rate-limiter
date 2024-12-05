@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createAPIKey } from "../useCases/CreateAPIKey";
+import { createUserController } from "../useCases/CreateUser";
 
 export class UserRouter {
   public router: Router;
@@ -10,6 +10,6 @@ export class UserRouter {
   }
 
   private routes = () => {
-    this.router.get("/sign-key/", createAPIKey.handle);
+    this.router.post("/register", createUserController.handle);
   };
 }

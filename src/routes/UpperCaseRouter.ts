@@ -12,6 +12,6 @@ export class UpperCaseRouter {
   }
 
   private routes() {
-    this.router.get("", upperCaseController.handle);
+    this.router.post("", upperCaseController.handle);
   }
 }

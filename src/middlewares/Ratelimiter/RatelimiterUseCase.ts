@@ -1,57 +1,39 @@
-import { IRatelimiterDTO } from "./RatelimiterDTO";
-import { IRatelimiterSessionRepository } from "../../repositories/IRatelimiterSessionRepository";
 import moment from "moment";
-import { IClientRepository } from "../../repositories/IClientRepository";
-import { TRatelimiterSession } from "../../types/TRatelimiterSession";
+import { RatelimiterDTO } from "./RatelimiterDTO";
+import { RatelimiterSession } from "../../types/TRatelimiterSession";
+import { RatelimiterSessionRepository } from "../../repositories/RatelimiterSessionRepository";
 
-interface IRate {
+export enum RatelimiterErrorKind {
+  LIMIT_EXCEED = 1,
+};
+
+export type RatelimiterError = {
+  kind: RatelimiterErrorKind,
+  message: string,
+}
+
+interface Rate {
   requestsPerWindow: number;
   windowDurationInSeconds: number;
 }
 
-const standardRate: IRate = {
+const standardRate: Rate = {
   requestsPerWindow: 5,
   windowDurationInSeconds: 1 * 60, // 1 min
 }; // 5 requests/min
 
 export class RatelimiterUseCase {
-  private clientRepository: IClientRepository;
-  private sessionRepository: IRatelimiterSessionRepository;
+  private sessionRepository: RatelimiterSessionRepository;
 
-  constructor(
-    clientRepository: IClientRepository,
-    sessionRepository: IRatelimiterSessionRepository
-  ) {
-    this.clientRepository = clientRepository;
+  constructor(sessionRepository: RatelimiterSessionRepository) {
     this.sessionRepository = sessionRepository;
   }
 
-  public perform = async (
-    data: IRatelimiterDTO
-  ): Promise<{
-    isAllowed: boolean;
-    status: number;
-    reason: string;
-  }> => {
-    const APIKey = data.APIKey;
-
-    if ((await this.isValidAPIKey(APIKey)) === false) {
-      return {
-        isAllowed: false,
-        status: 403,
-        reason: "Invalid API key",
-      };
-    }
-
-    const session = await this.sessionRepository.getSessionByAPIKey(APIKey);
-
-    if (session === null) {
-      await this.createSession(APIKey);
-      return {
-        isAllowed: true,
-        status: 200,
-        reason: "is the first request",
-      };
+  public handle = async ({ email }: RatelimiterDTO): Promise<RatelimiterError | undefined> => {
+    const session = await this.sessionRepository.getSessionByUserEmail(email);
+    if (!session) {
+      await this.createSession(email);
+      return;
     }
 
     const windowDurationInSeconds = session.windowDurationInSeconds;
@@ -63,48 +45,27 @@ export class RatelimiterUseCase {
       actualTimeInseconds
     );
 
+    // Window expired
     if (timePastSinceWindowStartInSeconds > windowDurationInSeconds) {
       await this.updateWindowStartTime(session);
-      return {
-        isAllowed: true,
-        status: 200,
-        reason: "window expired",
-      };
+      return;
     }
 
     const numberOfDoneRequests = session.numberOfDoneRequests;
     const requestsPerWindow = session.requestsPerWindow;
 
+    // Limit not exceeded yet
     if (requestsPerWindow > numberOfDoneRequests) {
       await this.updateNumberOfDoneRequests(session);
-      return {
-        isAllowed: true,
-        status: 200,
-        reason: "didn't exceeded the limit of requests",
-      };
+      return;
     }
 
-    const tryAgainWithin = this.calcWindowExpireTimeInSeconds(
-      windowStartTimeInSeconds,
-      windowDurationInSeconds
-    ).toString();
-
-    return {
-      isAllowed: false,
-      status: 429,
-      reason: `try again after ${tryAgainWithin} seconds`,
-    };
+    return { kind: RatelimiterErrorKind.LIMIT_EXCEED, message: "Requests limit exceeded" };
   };
 
-  private isValidAPIKey = async (APIKey: string): Promise<boolean> => {
-    const client = await this.clientRepository.getClientByAPIKey(APIKey);
-    if (client) return true;
-    return false;
-  };
-
-  private createSession = async (APIKey: string): Promise<void> => {
-    const newSession: TRatelimiterSession = {
-      APIKey: APIKey,
+  private createSession = async (email: string): Promise<void> => {
+    const newSession: RatelimiterSession = {
+      userEmail: email,
       requestsPerWindow: standardRate.requestsPerWindow,
       numberOfDoneRequests: 1,
       windowDurationInSeconds: standardRate.windowDurationInSeconds,
@@ -113,9 +74,9 @@ export class RatelimiterUseCase {
     await this.sessionRepository.storeSession(newSession);
   };
 
-  private async updateWindowStartTime(session: TRatelimiterSession) {
-    const updatedSession: TRatelimiterSession = {
-      APIKey: session.APIKey,
+  private async updateWindowStartTime(session: RatelimiterSession) {
+    const updatedSession: RatelimiterSession = {
+      userEmail: session.userEmail,
       numberOfDoneRequests: 1,
       requestsPerWindow: session.requestsPerWindow,
       windowDurationInSeconds: session.windowDurationInSeconds,
@@ -124,10 +85,11 @@ export class RatelimiterUseCase {
     await this.sessionRepository.updateSession(updatedSession);
   }
 
-  private async updateNumberOfDoneRequests(session: TRatelimiterSession) {
-    const updatedSession: TRatelimiterSession = {
-      APIKey: session.APIKey,
-      numberOfDoneRequests: session.numberOfDoneRequests + 1,
+  private async updateNumberOfDoneRequests(session: RatelimiterSession) {
+    const newNumberOfDoneRequests = session.numberOfDoneRequests + 1;
+    const updatedSession: RatelimiterSession = {
+      userEmail: session.userEmail,
+      numberOfDoneRequests: newNumberOfDoneRequests,
       requestsPerWindow: session.requestsPerWindow,
       windowDurationInSeconds: session.windowDurationInSeconds,
       windowStartTimeInSeconds: session.windowStartTimeInSeconds,
@@ -136,23 +98,10 @@ export class RatelimiterUseCase {
   }
 
   private getActualTimeInSeconds = (): number => {
-    return moment().utc().valueOf() / 1000;
+    return Math.floor(moment().utc().valueOf() / 1000);
   };
 
-  private calcWindowExpireTimeInSeconds = (
-    windowStartTimeInSeconds: number,
-    windowDurationInSeconds: number
-  ): number => {
-    const actualTime = this.getActualTimeInSeconds();
-    const expireTime =
-      windowStartTimeInSeconds + windowDurationInSeconds - actualTime;
-    return Math.floor(expireTime);
-  };
-
-  private calcTimeDifference = (
-    windowStartTime: number,
-    actualTime: number
-  ): number => {
+  private calcTimeDifference = (windowStartTime: number, actualTime: number): number => {
     return Math.floor(actualTime - windowStartTime);
   };
 }

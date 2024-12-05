@@ -1,12 +1,11 @@
-import { fakeDBRatelimiterSessionRepository } from "../../repositories/implementations/fakeDatabase/ratelimiterSessionRepository";
-import { fakeDBClientRepository } from "../../repositories/implementations/fakeDatabase/clientRepository";
-import { RatelimiterController } from "./RatelimiterController";
 import { RatelimiterUseCase } from "./RatelimiterUseCase";
+import { RatelimiterController } from "./RatelimiterController";
+import { inMemoryRatelimiterSessionRepository } from "../../repositories/implementations/inMemory/ratelimiterSessionRepository";
 
 const ratelimiterUseCase = new RatelimiterUseCase(
-  fakeDBClientRepository,
-  fakeDBRatelimiterSessionRepository
+  inMemoryRatelimiterSessionRepository
 );
+
 const ratelimiterController = new RatelimiterController(ratelimiterUseCase);
 
 export { ratelimiterController as rateLimiter };
