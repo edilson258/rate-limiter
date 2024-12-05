@@ -1,7 +1,7 @@
-import { UpperCaseUseCase } from "./UpperCaseUseCase";
+import { UpperCase } from "./UpperCase";
 import { UpperCaseController } from "./UpperCaseController";
 
-const upperCaseUseCase = new UpperCaseUseCase();
+const upperCaseUseCase = new UpperCase();
 const upperCaseController = new UpperCaseController(upperCaseUseCase);
 
 export { upperCaseController };

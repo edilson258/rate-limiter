@@ -1,4 +1,3 @@
-
-export interface IUpperCaseDTO {
-  lowerCaseText: string
+export interface UpperCaseDTO {
+  text: string
 }

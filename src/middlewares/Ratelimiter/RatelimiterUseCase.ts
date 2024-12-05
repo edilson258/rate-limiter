@@ -1,6 +1,6 @@
 import moment from "moment";
 import { RatelimiterDTO } from "./RatelimiterDTO";
-import { RatelimiterSession } from "../../types/TRatelimiterSession";
+import { RatelimiterSession } from "../../@types/RatelimiterSession";
 import { RatelimiterSessionRepository } from "../../repositories/RatelimiterSessionRepository";
 
 export enum RatelimiterErrorKind {
@@ -47,7 +47,7 @@ export class RatelimiterUseCase {
 
     // Window expired
     if (timePastSinceWindowStartInSeconds > windowDurationInSeconds) {
-      await this.updateWindowStartTime(session);
+      await this.resetWindow(session);
       return;
     }
 
@@ -74,12 +74,10 @@ export class RatelimiterUseCase {
     await this.sessionRepository.storeSession(newSession);
   };
 
-  private async updateWindowStartTime(session: RatelimiterSession) {
+  private async resetWindow(session: RatelimiterSession) {
     const updatedSession: RatelimiterSession = {
-      userEmail: session.userEmail,
+      ...session,
       numberOfDoneRequests: 1,
-      requestsPerWindow: session.requestsPerWindow,
-      windowDurationInSeconds: session.windowDurationInSeconds,
       windowStartTimeInSeconds: this.getActualTimeInSeconds(),
     };
     await this.sessionRepository.updateSession(updatedSession);
@@ -88,11 +86,8 @@ export class RatelimiterUseCase {
   private async updateNumberOfDoneRequests(session: RatelimiterSession) {
     const newNumberOfDoneRequests = session.numberOfDoneRequests + 1;
     const updatedSession: RatelimiterSession = {
-      userEmail: session.userEmail,
+      ...session,
       numberOfDoneRequests: newNumberOfDoneRequests,
-      requestsPerWindow: session.requestsPerWindow,
-      windowDurationInSeconds: session.windowDurationInSeconds,
-      windowStartTimeInSeconds: session.windowStartTimeInSeconds,
     };
     await this.sessionRepository.updateSession(updatedSession);
   }
